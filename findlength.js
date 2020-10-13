@@ -16,5 +16,4 @@ function findMinMax() {
      print(min);
 }
 
-use MusicalReviewsDB;
 findMinMax();

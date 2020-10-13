@@ -16,6 +16,7 @@ mr_df = pd.DataFrame(list(musical_reviews.find({}, {'_id':0})))
 
 #Reviewer dimension from mr_df
 reviewer_df = mr_df[['reviewerID','reviewerName']].drop_duplicates()
+reviewer_df = reviewer_df[reviewer_df['reviewerName'].notnull()] #remove any record with null columns for reviewerName
 
 #product dimension from mr_df
 product_df = mr_df['asin'].drop_duplicates()
@@ -39,9 +40,57 @@ try:
     product_df['InsertTimestamp'] = [dt.datetime.now(tz=None) for i in product_df.index]
     #Rename asin column as productID
     product_df.rename(columns={'asin': 'ProductID'}, inplace=True)
+    #Drop any rows with product_id as null
+    product_df = product_df[product_df['ProductID'].notnull()]
     #Write product to Postgres
     product_df.to_sql('product_dim', con=engine, if_exists="append", schema= 'musical', index=False)
-            
+
+    #REVIEWER DIMENSION
+    #Reading data from postgress for REVIEWER dimension
+    sql_read_reviewer = """SELECT * FROM musical.reviewer_dim WHERE "ActiveIndicator" = 'Y'"""
+    reviewer_pg_df = pd.read_sql_query(sql=sql_read_reviewer, con=engine)
+    #Left Join reviewer from json file to reviewer from postgres table and use it to recreate reviewer_df
+    reviewer_df = pd.merge(reviewer_df, reviewer_pg_df, how='left', on='reviewerID')
+    #Select changed records only from reviewer_df
+    reviewer_chg_df = reviewer_df[(reviewer_df['reviewerName_x'] != reviewer_df['reviewerName_y']) & reviewer_df['reviewerName_y'].notnull()][['reviewerID','reviewerName_x','InsertTimestamp']]
+    #Add the metadata for changed dataframe
+    reviewer_chg_df['UpdateTimestamp'] = [dt.datetime.now(tz=None) for i in reviewer_chg_df.index]
+    reviewer_chg_df['ActiveIndicator'] = ['Y' for i in reviewer_chg_df.index]
+    #Select new records from reviewer_df
+    reviewer_new_df = reviewer_df[reviewer_df['reviewerName_y'].isnull()][['reviewerID','reviewerName_x']]
+    #Add the metadata for new dataframe
+    reviewer_new_df['InsertTimestamp'] = [dt.datetime.now(tz=None) for i in reviewer_new_df.index]
+    reviewer_new_df['UpdateTimestamp'] = [dt.datetime.now(tz=None) for i in reviewer_new_df.index]
+    reviewer_new_df['ActiveIndicator'] = ['Y' for i in reviewer_new_df.index]
+    #Union of changed and new dataframes
+    reviewer_df = pd.concat([reviewer_chg_df,reviewer_new_df])
+    #Rename reviewerName_x to reviewerName
+    reviewer_df.rename(columns={'reviewerName_x' : 'reviewerName'} ,inplace=True)
+    #Drop any row with reviewerId as null and drop any duplicates
+    reviewer_df = reviewer_df[reviewer_df['reviewerID'].notnull()]
+    #Write dataframe with changed and new records to a worktable in postgres
+    reviewer_df.to_sql('reviewer_wt', con=engine, if_exists="replace", schema= 'work_schema', index=False)
+
+    sql_update = """UPDATE musical.reviewer_dim
+                    SET "ActiveIndicator" = 'N'
+                    , "UpdateTimestamp" = LOCALTIMESTAMP
+                    FROM work_schema.reviewer_wt as wt
+                    WHERE reviewer_dim."reviewerID"=wt."reviewerID"
+                    AND reviewer_dim."ActiveIndicator"='Y'
+                    """
+
+    sql_insert = """INSERT INTO musical.reviewer_dim 
+                    SELECT * FROM work_schema.reviewer_wt"""
+    
+    #Applying update and insert queries to main table from WT
+    with engine.begin() as conn:
+        conn.execute(sql_update)
+        print("Reviewer dimension update complete.")
+        conn.execute(sql_insert)
+        print("Reviewer dimension insert complete.")
+
+    #FACT TABLE LOAD
+                        
 except (Exception, psycopg2.Error) as error :
     print ("Error while connecting to PostgreSQL", error)
     sys.exit(1)
