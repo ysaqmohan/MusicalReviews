@@ -52,8 +52,9 @@ try:
     #Left Join reviewer from json file to reviewer from postgres table and use it to recreate reviewer_df
     reviewer_df = pd.merge(reviewer_df, reviewer_pg_df, how='left', on='reviewerID')
     #Select changed records only from reviewer_df
-    reviewer_chg_df = reviewer_df[(reviewer_df['reviewerName_x'] != reviewer_df['reviewerName_y']) & reviewer_df['reviewerName_y'].notnull()][['reviewerID','reviewerName_x','InsertTimestamp']]
+    reviewer_chg_df = reviewer_df[(reviewer_df['reviewerName_x'] != reviewer_df['reviewerName_y']) & reviewer_df['reviewerName_y'].notnull()][['reviewerID','reviewerName_x']]
     #Add the metadata for changed dataframe
+    reviewer_chg_df['InsertTimestamp'] = [dt.datetime.now(tz=None) for i in reviewer_chg_df.index]
     reviewer_chg_df['UpdateTimestamp'] = [dt.datetime.now(tz=None) for i in reviewer_chg_df.index]
     reviewer_chg_df['ActiveIndicator'] = ['Y' for i in reviewer_chg_df.index]
     #Select new records from reviewer_df
@@ -80,7 +81,7 @@ try:
                     """
 
     sql_insert = """INSERT INTO musical.reviewer_dim 
-                    SELECT * FROM work_schema.reviewer_wt"""
+                    SELECT "reviewerID", "reviewerName", LOCALTIMESTAMP, LOCALTIMESTAMP, "ActiveIndicator" FROM work_schema.reviewer_wt"""
     
     #Applying update and insert queries to main table from WT
     with engine.begin() as conn:
