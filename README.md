@@ -18,6 +18,6 @@ Project uses python3. So install the following packages with pip3:
 3. pandas
 4. pycopg2
 
-The db dumb for postgres is also attached. Use it to deploy the DB and tables.
+The db dump for postgres is also attached. Use it to deploy the DB and tables.
 Run json_l_mongo.py in python directory with python3 to load data into mongo
 mongo_tl_postgres.py in python directory with python3 for reading from mongo, transforming and loading the data into postgres.

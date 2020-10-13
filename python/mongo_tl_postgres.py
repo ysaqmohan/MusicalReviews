@@ -21,6 +21,16 @@ reviewer_df = reviewer_df[reviewer_df['reviewerName'].notnull()] #remove any rec
 #product dimension from mr_df
 product_df = mr_df['asin'].drop_duplicates()
 
+#MUSICAL REVIEW FACT
+#Take the fact and key columns. Converting the column of lists into two columns
+mr_fact_df = pd.concat([mr_df[['reviewerID','asin','overall','summary','unixReviewTime']], mr_df['helpful'].apply(pd.Series)],axis=1)
+#Renaming columns
+mr_fact_df.rename(columns={0:'helpful_in', 1:'helpful_out', 'unixReviewTime':'ReviewDate', 'asin':'ProductID'}, inplace=True)
+#Converting unix timestamp to timestamp
+mr_fact_df['ReviewDate'] = pd.to_datetime(mr_fact_df['ReviewDate'], unit='s')
+#Add insert timestamp
+mr_fact_df['InsertTimestamp'] = [dt.datetime.now(tz=None) for i in mr_fact_df.index]
+
 #connecting to Postgres
 try:
     engine = sqlalchemy.create_engine('postgres://postgres:Susi@123@localhost:5432/reviews_db')
@@ -91,6 +101,7 @@ try:
         print("Reviewer dimension insert complete.")
 
     #FACT TABLE LOAD
+    mr_fact_df.to_sql('musical_review_fact', con=engine, if_exists="append", schema= 'musical', index=False)
                         
 except (Exception, psycopg2.Error) as error :
     print ("Error while connecting to PostgreSQL", error)

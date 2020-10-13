@@ -1,0 +1,123 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 12.4 (Ubuntu 12.4-0ubuntu0.20.04.1)
+-- Dumped by pg_dump version 12.4 (Ubuntu 12.4-1.pgdg20.04+1)
+
+-- Started on 2020-10-13 20:53:37 CEST
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 6 (class 2615 OID 16386)
+-- Name: musical; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA musical;
+
+
+ALTER SCHEMA musical OWNER TO postgres;
+
+--
+-- TOC entry 7 (class 2615 OID 40960)
+-- Name: work_schema; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA work_schema;
+
+
+ALTER SCHEMA work_schema OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 206 (class 1259 OID 73797)
+-- Name: musical_review_fact; Type: TABLE; Schema: musical; Owner: postgres
+--
+
+CREATE TABLE musical.musical_review_fact (
+    "reviewerID" character varying(30) NOT NULL,
+    "ProductID" character varying(30) NOT NULL,
+    overall double precision,
+    summary character varying(300),
+    "ReviewDate" date,
+    helpful_in numeric(5,2),
+    helpful_out numeric(5,2),
+    "InsertTimestamp" timestamp without time zone
+);
+
+
+ALTER TABLE musical.musical_review_fact OWNER TO postgres;
+
+--
+-- TOC entry 204 (class 1259 OID 16395)
+-- Name: product_dim; Type: TABLE; Schema: musical; Owner: postgres
+--
+
+CREATE TABLE musical.product_dim (
+    "ProductID" character varying(30) NOT NULL,
+    "InsertTimestamp" timestamp without time zone
+);
+
+
+ALTER TABLE musical.product_dim OWNER TO postgres;
+
+--
+-- TOC entry 205 (class 1259 OID 57360)
+-- Name: reviewer_dim; Type: TABLE; Schema: musical; Owner: postgres
+--
+
+CREATE TABLE musical.reviewer_dim (
+    "reviewerID" character varying(30) NOT NULL,
+    "reviewerName" character varying(70) NOT NULL,
+    "InsertTimestamp" timestamp without time zone NOT NULL,
+    "UpdateTimestamp" timestamp without time zone NOT NULL,
+    "ActiveIndicator" "char" NOT NULL
+);
+
+
+ALTER TABLE musical.reviewer_dim OWNER TO postgres;
+
+--
+-- TOC entry 207 (class 1259 OID 73800)
+-- Name: reviewer_wt; Type: TABLE; Schema: work_schema; Owner: postgres
+--
+
+CREATE TABLE work_schema.reviewer_wt (
+    "reviewerID" text,
+    "reviewerName" text,
+    "InsertTimestamp" timestamp without time zone,
+    "UpdateTimestamp" timestamp without time zone,
+    "ActiveIndicator" text
+);
+
+
+ALTER TABLE work_schema.reviewer_wt OWNER TO postgres;
+
+--
+-- TOC entry 2846 (class 2606 OID 16399)
+-- Name: product_dim product_dim_pkey; Type: CONSTRAINT; Schema: musical; Owner: postgres
+--
+
+ALTER TABLE ONLY musical.product_dim
+    ADD CONSTRAINT product_dim_pkey PRIMARY KEY ("ProductID");
+
+
+-- Completed on 2020-10-13 20:53:41 CEST
+
+--
+-- PostgreSQL database dump complete
+--
+
